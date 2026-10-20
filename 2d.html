@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>スーパーマリオ ワンダーワールド 2D</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Zen+Maru+Gothic:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        body {
+            font-family: 'Zen Maru Gothic', 'Fredoka', sans-serif;
+            background-color: #030712;
+            color: #ffffff;
+            overflow: hidden;
+        }
+        .pop-font {
+            font-family: 'Fredoka', 'Zen Maru Gothic', cursive, sans-serif;
+        }
+        .glass-hud {
+            background: rgba(3, 7, 18, 0.82);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+        }
+        .touch-btn {
+            background: rgba(255, 255, 255, 0.12);
+            border: 2px solid rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+            touch-action: none;
+        }
+        .touch-btn:active {
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(0.92);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between relative bg-sky-950 overflow-hidden select-none">
+
+    <!-- Modern HUD Header -->
+    <header class="z-20 px-4 py-2 sm:px-6 sm:py-3 glass-hud m-2 rounded-2xl flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-600 to-indigo-700 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-amber-500/30 transform -rotate-3 border border-white/20">
+                <i class="fa-solid fa-cube"></i>
+            </div>
+            <div>
+                <h1 class="pop-font text-sm sm:text-lg font-black tracking-wider bg-gradient-to-r from-amber-200 via-rose-300 to-cyan-300 bg-clip-text text-transparent">
+                    MARIO WONDER : REAL MODE
+                </h1>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-4 sm:space-x-6 text-sm font-black pop-font">
+            <div class="flex items-center space-x-2 text-yellow-300 bg-yellow-950/40 px-3 py-1 rounded-full border border-yellow-500/30">
+                <i class="fa-solid fa-coins text-yellow-400 text-lg animate-bounce"></i>
+                <span id="hudCoins" class="text-base">x00</span>
+            </div>
+            <div class="flex items-center space-x-2 text-rose-400 bg-rose-950/40 px-3 py-1 rounded-full border border-rose-500/30">
+                <i class="fa-solid fa-heart text-rose-500 text-lg"></i>
+                <span id="hudLives" class="text-base">x5</span>
+            </div>
+            <div class="hidden sm:flex items-center space-x-1.5 text-cyan-300 bg-cyan-950/40 px-3 py-1 rounded-full border border-cyan-500/30">
+                <span>SCORE:</span>
+                <span id="hudScore">000000</span>
+            </div>
+            <button id="btnSoundToggle" class="w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-600 text-cyan-400 hover:text-white hover:border-cyan-400 transition flex items-center justify-center">
+                <i class="fa-solid fa-volume-high text-base"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="relative flex-1 w-full h-full overflow-hidden flex justify-center items-center">
+        <!-- Game Canvas -->
+        <canvas id="gameCanvas" class="w-full h-full block cursor-pointer"></canvas>
+
+        <!-- Overlay: Title / Start Screen -->
+        <div id="startOverlay" class="absolute inset-0 z-30 glass-hud flex flex-col justify-center items-center p-6 text-center bg-slate-950/80">
+            <div class="max-w-md w-full bg-slate-900/90 rounded-3xl border-2 border-red-500/50 p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+                <div class="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-tr from-red-500 via-amber-400 to-emerald-400 flex items-center justify-center text-4xl text-white shadow-xl shadow-red-500/40 animate-bounce">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <h2 class="pop-font text-2xl sm:text-3xl text-red-400 font-black mb-1">MARIO WONDER</h2>
+                <p class="text-xs sm:text-sm text-slate-300 mb-5 font-bold">
+                    ヒップドロップ＆壁キックで進め！ワンダーフラワーを取って世界を変えよう！
+                </p>
+
+                <!-- Action Controls Info -->
+                <div class="text-left bg-slate-950/90 p-4 rounded-2xl border border-slate-800 text-xs text-slate-300 mb-6 space-y-2.5 font-sans">
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-400 font-bold">移動 (Move):</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 font-mono text-cyan-300 font-bold">← → / A D / 画面左右</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-400 font-bold">ジャンプ / 壁キック:</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 font-mono text-amber-300 font-bold">SPACE / W / 画面上部</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-400 font-bold">ヒップドロップ (Ground Pound):</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 font-mono text-rose-300 font-bold">↓ / S (空中で) / 画面下部</span>
+                    </div>
+                </div>
+
+                <button id="btnStartGame" class="w-full py-4 rounded-2xl bg-gradient-to-r from-red-500 via-amber-400 to-emerald-400 text-slate-950 pop-font text-base sm:text-lg font-black shadow-xl shadow-red-500/40 hover:brightness-110 active:scale-95 transition transform cursor-pointer">
+                    GAME START !
+                </button>
+            </div>
+        </div>
+
+        <!-- Overlay: Game Over / Victory Overlay -->
+        <div id="statusOverlay" class="hidden absolute inset-0 z-30 glass-hud flex flex-col justify-center items-center p-6 text-center bg-slate-950/85">
+            <div class="max-w-md w-full bg-slate-900/90 rounded-3xl border-2 border-cyan-500/50 p-6 sm:p-8 shadow-2xl relative">
+                <h2 id="statusTitle" class="pop-font text-2xl sm:text-3xl mb-2 text-red-400 font-black">GAME OVER</h2>
+                <p id="statusSubtitle" class="text-xs sm:text-sm text-slate-300 mb-6 font-bold">もう一度ワンダーの世界へ冒険に出よう！</p>
+
+                <div class="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 text-sm font-mono text-slate-300 mb-6 space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">SCORE:</span>
+                        <span id="finalScore" class="text-amber-400 font-bold">000000</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">COINS:</span>
+                        <span id="finalCoins" class="text-amber-300 font-bold">0</span>
+                    </div>
+                </div>
+
+                <button id="btnRestart" class="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 pop-font text-base sm:text-lg font-black shadow-xl shadow-cyan-500/40 hover:brightness-110 active:scale-95 transition transform">
+                    PLAY AGAIN
+                </button>
+            </div>
+        </div>
+
+        <!-- Touch Controls (Mobile/Tablet UI Buttons) -->
+        <div id="mobileControls" class="absolute bottom-5 left-5 right-5 z-20 flex justify-between items-end pointer-events-none">
+            <!-- Left/Right Controls -->
+            <div class="flex space-x-3 pointer-events-auto">
+                <button id="btnLeft" class="touch-btn w-16 h-16 sm:w-20 sm:h-20 rounded-3xl flex items-center justify-center text-white text-2xl font-black">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <button id="btnRight" class="touch-btn w-16 h-16 sm:w-20 sm:h-20 rounded-3xl flex items-center justify-center text-white text-2xl font-black">
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- Action Buttons (Jump & Ground Pound) -->
+            <div class="flex space-x-3 pointer-events-auto">
+                <button id="btnDown" class="touch-btn w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-rose-300 text-xl font-black">
+                    <i class="fa-solid fa-arrow-down"></i>
+                </button>
+                <button id="btnJump" class="touch-btn w-18 h-18 sm:w-22 sm:h-22 rounded-3xl flex items-center justify-center text-yellow-300 text-3xl font-black">
+                    <i class="fa-solid fa-chevron-up"></i>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Web Audio Synthesizer for Modern Chiptune & Wonder Effects
+        class ModernAudio {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+                this.bgmMode = 'none'; // 'overworld', 'underground', 'star', 'none'
+                this.bgmStep = 0;
+                this.bgmInterval = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) this.ctx = new AudioContext();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+                this.startBGM();
+            }
+
+            startBGM() {
+                if (this.bgmInterval) return;
+                // BGMシーケンサーを125ms間隔（約120BPMの16分音符）で駆動
+                this.bgmInterval = setInterval(() => {
+                    this.tickBGM();
+                }, 120);
+            }
+
+            stopBGM() {
+                if (this.bgmInterval) {
+                    clearInterval(this.bgmInterval);
+                    this.bgmInterval = null;
+                }
+            }
+
+            setBGMMode(mode) {
+                if (this.bgmMode !== mode) {
+                    this.bgmMode = mode;
+                    this.bgmStep = 0;
+                }
+            }
+
+            tickBGM() {
+                if (!this.enabled || !this.ctx || this.bgmMode === 'none') return;
+                if (this.ctx.state === 'suspended') return;
+
+                const step = this.bgmStep;
+                this.bgmStep = (this.bgmStep + 1) % 32; // 32ステップ（2小節）で1ループ
+
+                if (this.bgmMode === 'star') {
+                    // ★ スター・ワンダーモード（超ハイテンポなアップビートBGM）
+                    const melody = [
+                        659, 659, 0, 659, 0, 523, 659, 0, 783, 0, 0, 0, 392, 0, 0, 0,
+                        523, 0, 0, 392, 0, 0, 329, 0, 440, 0, 493, 0, 466, 440, 0, 392
+                    ];
+                    const bass = [
+                        130, 260, 130, 260, 130, 260, 130, 260, 196, 392, 196, 392, 196, 392, 196, 392,
+                        130, 260, 130, 260, 130, 260, 130, 260, 174, 349, 174, 349, 196, 392, 196, 392
+                    ];
+                    const freq = melody[step];
+                    const bFreq = bass[step];
+                    if (freq > 0) this.playTone(freq, 0.08, 'square', 0.15);
+                    if (bFreq > 0) this.playTone(bFreq, 0.08, 'triangle', 0.2);
+
+                } else if (this.bgmMode === 'underground') {
+                    // 洞窟・地下BGM（低音で不気味・ミステリアスな音色）
+                    const subMelody = [
+                        261, 523, 220, 440, 233, 466, 0, 0, 261, 523, 220, 440, 233, 466, 0, 0,
+                        196, 392, 164, 329, 174, 349, 0, 0, 196, 392, 164, 329, 174, 349, 0, 0
+                    ];
+                    const freq = subMelody[step];
+                    if (freq > 0) this.playTone(freq, 0.09, 'sawtooth', 0.12);
+                    if (step % 4 === 0) this.playTone(110, 0.1, 'sine', 0.25);
+
+                } else if (this.bgmMode === 'overworld') {
+                    // 晴天・地上BGM（明るく爽やかなポップメロディ）
+                    const mainMelody = [
+                        659, 659, 0, 659, 0, 523, 659, 0, 783, 0, 0, 0, 392, 0, 0, 0,
+                        523, 0, 0, 392, 0, 0, 329, 0, 440, 0, 493, 0, 466, 440, 0, 392
+                    ];
+                    const mainBass = [
+                        261, 0, 261, 0, 261, 0, 261, 0, 196, 0, 196, 0, 196, 0, 196, 0,
+                        174, 0, 174, 0, 174, 0, 174, 0, 196, 0, 196, 0, 196, 0, 196, 0
+                    ];
+                    const freq = mainMelody[step];
+                    const bFreq = mainBass[step];
+                    if (freq > 0) this.playTone(freq, 0.08, 'sine', 0.18);
+                    if (bFreq > 0) this.playTone(bFreq, 0.1, 'triangle', 0.15);
+                }
+            }
+
+            playTone(freq, duration, type = 'sine', volume = 0.3) {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    const now = this.ctx.currentTime;
+
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, now);
+
+                    gain.gain.setValueAtTime(Math.max(0.01, volume), now);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now);
+                    osc.stop(now + duration);
+                } catch(e) {
+                    // Audio execute catch
+                }
+            }
+
+            playJump() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.18);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.18);
+            }
+
+            playWallJump() {
+                this.playTone(523.25, 0.1, 'square', 0.25);
+                setTimeout(() => this.playTone(783.99, 0.12, 'square', 0.25), 50);
+            }
+
+            playGroundPound() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+
+                this.playTone(150, 0.2, 'sawtooth', 0.4);
+                setTimeout(() => this.playTone(60, 0.3, 'sawtooth', 0.5), 80);
+            }
+
+            playCoin() {
+                if (!this.enabled) return;
+                this.playTone(987.77, 0.08, 'sine', 0.25); // B5
+                setTimeout(() => this.playTone(1318.51, 0.25, 'sine', 0.25), 80); // E6
+            }
+
+            playStomp() {
+                this.playTone(200, 0.08, 'sawtooth', 0.3);
+                setTimeout(() => this.playTone(100, 0.12, 'sawtooth', 0.3), 40);
+            }
+
+            playFootstep() {
+                if (!this.enabled) return;
+                // 歩行時の軽快な足音（トコトコ音）
+                this.playTone(220 + (Math.random() * 20 - 10), 0.04, 'sine', 0.06);
+            }
+
+            playEnemyDefeat() {
+                if (!this.enabled) return;
+                // 敵を倒した（殺した）時の爽快なポコン！という音
+                this.playTone(350, 0.06, 'square', 0.25);
+                setTimeout(() => this.playTone(700, 0.14, 'triangle', 0.3), 40);
+            }
+
+            playBump() {
+                this.playTone(130, 0.08, 'square', 0.25);
+            }
+
+            playPipe() {
+                if (!this.enabled) return;
+                const notes = [200, 160, 130, 100];
+                notes.forEach((freq, idx) => {
+                    setTimeout(() => this.playTone(freq, 0.08, 'sawtooth', 0.35), idx * 60);
+                });
+            }
+
+            playWonderEffect() {
+                const freqs = [329.63, 392.00, 493.88, 587.33, 659.25, 783.99, 987.77, 1174.66];
+                freqs.forEach((f, idx) => {
+                    setTimeout(() => this.playTone(f, 0.15, 'triangle', 0.25), idx * 50);
+                });
+            }
+
+            playGameOver() {
+                const notes = [392, 349, 329, 293, 261];
+                notes.forEach((freq, idx) => {
+                    setTimeout(() => this.playTone(freq, 0.15, 'sawtooth', 0.3), idx * 120);
+                });
+            }
+
+            playMiss() {
+                if (!this.enabled) return;
+                this.setBGMMode('none');
+                // マリオ風ミス・落下BGMジングル（テ・テ・テ・テレレン♪）
+                const missNotes = [
+                    { f: 523.25, d: 0.12, t: 0 },   // C5
+                    { f: 493.88, d: 0.12, t: 140 }, // B4
+                    { f: 466.16, d: 0.12, t: 280 }, // Bb4
+                    { f: 440.00, d: 0.12, t: 420 }, // A4
+                    { f: 349.23, d: 0.2, t: 580 },  // F4
+                    { f: 392.00, d: 0.2, t: 760 },  // G4
+                    { f: 261.63, d: 0.45, t: 960 }  // C4
+                ];
+                missNotes.forEach(note => {
+                    setTimeout(() => this.playTone(note.f, note.d, 'square', 0.28), note.t);
+                });
+            }
+
+            playClear() {
+                if (!this.enabled) return;
+                // マリオ風コースクリア・ファンファーレ（本格メロディ）
+                const fanfare = [
+                    { f: 392.00, d: 0.1, t: 0 },    // G4
+                    { f: 523.25, d: 0.1, t: 110 },  // C5
+                    { f: 659.25, d: 0.1, t: 220 },  // E5
+                    { f: 783.99, d: 0.1, t: 330 },  // G5
+                    { f: 1046.50, d: 0.1, t: 440 }, // C6
+                    { f: 1318.51, d: 0.1, t: 550 }, // E6
+                    { f: 1567.98, d: 0.3, t: 660 }, // G6
+                    { f: 1318.51, d: 0.3, t: 850 }, // E6
+
+                    { f: 415.30, d: 0.1, t: 1050 }, // Ab4
+                    { f: 523.25, d: 0.1, t: 1160 }, // C5
+                    { f: 622.25, d: 0.1, t: 1270 }, // Eb5
+                    { f: 830.61, d: 0.1, t: 1380 }, // Ab5
+                    { f: 1046.50, d: 0.1, t: 1490 },// C6
+                    { f: 1244.51, d: 0.1, t: 1600 },// Eb6
+                    { f: 1661.22, d: 0.3, t: 1710 },// Ab6
+                    { f: 1244.51, d: 0.3, t: 1900 },// Eb6
+
+                    { f: 466.16, d: 0.1, t: 2100 }, // Bb4
+                    { f: 587.33, d: 0.1, t: 2210 }, // D5
+                    { f: 698.46, d: 0.1, t: 2320 }, // F5
+                    { f: 932.33, d: 0.1, t: 2430 }, // Bb5
+                    { f: 1174.66, d: 0.1, t: 2540 },// D6
+                    { f: 1396.91, d: 0.1, t: 2650 },// F6
+                    { f: 1864.66, d: 0.35, t: 2760 },// Bb6
+                    { f: 2093.00, d: 0.6, t: 3100 } // C7 (フィナーレ)
+                ];
+                fanfare.forEach(note => {
+                    setTimeout(() => this.playTone(note.f, note.d, 'square', 0.25), note.t);
+                });
+            }
+        }
+
+        const audio = new ModernAudio();
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const GRAVITY = 0.42; // ふんわりジャンプしやすく
+        const FRICTION = 0.86;
+
+        let gameState = 'START'; // START, PLAYING, GAMEOVER, CLEAR
+        let score = 0;
+        let coins = 0;
+        let lives = 5; // 残機を5機にアップ
+        let cameraX = 0;
+        let cameraY = 0;
+        let wonderActive = false;
+        let wonderTimer = 0;
+
+        // Player State
+        const player = {
+            x: 100,
+            y: 300,
+            width: 36,
+            height: 48,
+            vx: 0,
+            vy: 0,
+            speed: 0.75,
+            maxSpeed: 5.5,
+            jumpForce: 13.8, // 高くジャンプできるように変更
+            grounded: false,
+            isBig: false,
+            facingLeft: false,
+            invulnerableTimer: 0,
+            isDying: false, // 落下・ダメージ時の二重判定防止フラグ
+            // Modern Actions State
+            isWallSliding: false,
+            wallDir: 0, // -1: wall left, 1: wall right
+            isGroundPounding: false,
+            groundPoundTimer: 0,
+            animTimer: 0,
+            // Pipe Warp State
+            isPiping: false,
+            pipeTimer: 0,
+            pipeMode: 'down', // 'down' or 'up'
+            pipeTarget: null,
+            stepTimer: 0
+        };
+
+        // Inputs
+        const keys = {
+            left: false,
+            right: false,
+            jump: false,
+            down: false
+        };
+
+        // Game Entities
+        let blocks = [];
+        let coinsList = [];
+        let enemies = [];
+        let particles = [];
+        let wonderFlowers = [];
+        let flagPole = null;
+
+        // Cinematic Atmospheric Particles (Dust, Fog, Sparks)
+        let ambientDust = [];
+        for (let i = 0; i < 60; i++) {
+            ambientDust.push({
+                x: Math.random() * 6000,
+                y: Math.random() * 600,
+                size: Math.random() * 2.5 + 0.5,
+                speedX: (Math.random() - 0.5) * 0.4,
+                speedY: (Math.random() - 0.5) * 0.3,
+                alpha: Math.random() * 0.6 + 0.2
+            });
+        }
+
+        function buildLevel() {
+            blocks = [];
+            coinsList = [];
+            enemies = [];
+            particles = [];
+            wonderFlowers = [];
+
+            const GROUND_Y = 480;
+
+            // 1. Base Ground Blocks with gaps (崖・穴から落下できるように修正)
+            for (let x = 0; x < 6500; x += 36) {
+                if ((x >= 900 && x <= 1040) || (x >= 2100 && x <= 2280) || (x >= 3600 && x <= 3800)) {
+                    // 穴（落下する隙間スペース）
+                    continue;
+                }
+                blocks.push({ x: x, y: GROUND_Y, w: 36, h: 72, type: 'ground' });
+            }
+
+            // Helpers for level creation
+            const addQuestionBlock = (bx, by, item = 'coin') => {
+                blocks.push({ x: bx, y: by, w: 36, h: 36, type: 'question', item: item, hit: false });
+            };
+            const addBrickBlock = (bx, by) => {
+                blocks.push({ x: bx, y: by, w: 36, h: 36, type: 'brick' });
+            };
+            const addPipe = (px, height, canEnter = false, targetPipe = null) => {
+                const py = GROUND_Y - height;
+                blocks.push({ x: px, y: py, w: 60, h: height, type: 'pipe', canEnter: canEnter, targetPipe: targetPipe });
+            };
+
+            // Pipes (Wall Jumpable & Enterable Warp Pipes)
+            // 1つ目の土管 (x: 520) は地下コインボーナス部屋へ入る土管
+            addPipe(520, 80, true, { x: 1200, y: 1200 - 80, exitX: 1600, exitY: GROUND_Y - 160 });
+            addPipe(1150, 120);
+            addPipe(1600, 160); // 地上復帰出口用の土管
+            addPipe(2500, 90);
+            addPipe(4100, 140);
+
+            // --- 地下ボーナス部屋 (SUB STAGE) ---
+            const SUB_GROUND_Y = 1200;
+            for (let x = 1000; x <= 1500; x += 36) {
+                blocks.push({ x: x, y: SUB_GROUND_Y, w: 36, h: 100, type: 'ground' });
+            }
+            // 地下ボーナス部屋の大量のコイン＆ハテナブロック
+            for (let i = 0; i < 8; i++) {
+                coinsList.push({ x: 1080 + i * 40, y: SUB_GROUND_Y - 50, collected: false });
+                coinsList.push({ x: 1080 + i * 40, y: SUB_GROUND_Y - 90, collected: false });
+            }
+            addQuestionBlock(1200, SUB_GROUND_Y - 140, 'wonder');
+            // 地下部屋の出口土管 (上キーまたは触れると地上 x: 1600 へワープ)
+            addPipe(1420, 80, true, { exitX: 1600, exitY: GROUND_Y - 160, isSubExit: true });
+
+            // Blocks Setup
+            addQuestionBlock(350, 340, 'coin');
+            addBrickBlock(386, 340);
+            addQuestionBlock(422, 340, 'mushroom');
+            addBrickBlock(458, 340);
+
+            // Wonder Flower Block!
+            addQuestionBlock(720, 320, 'wonder');
+
+            // High Stairs for Wall Kick Practice
+            for (let i = 0; i < 6; i++) {
+                for (let j = 0; j <= i; j++) {
+                    blocks.push({ x: 1800 + i * 36, y: GROUND_Y - (j + 1) * 36, w: 36, h: 36, type: 'stair' });
+                }
+            }
+
+            // Floating Platform Stairs & Coins
+            for (let i = 0; i < 5; i++) {
+                addBrickBlock(2800 + i * 36, 320);
+                coinsList.push({ x: 2818 + i * 36, y: 270, collected: false });
+            }
+
+            // Extra Coins on the ground
+            for (let i = 0; i < 6; i++) {
+                coinsList.push({ x: 1300 + i * 40, y: GROUND_Y - 30, collected: false });
+                coinsList.push({ x: 3300 + i * 40, y: GROUND_Y - 30, collected: false });
+            }
+
+            addQuestionBlock(3100, 310, 'wonder');
+
+            // Tall Castle Pillar Wall
+            blocks.push({ x: 4500, y: GROUND_Y - 240, w: 40, h: 240, type: 'stair' });
+
+            // Goal Flag Pole
+            flagPole = {
+                x: 5400,
+                y: GROUND_Y - 280,
+                w: 16,
+                h: 280,
+                flagY: GROUND_Y - 270
+            };
+
+            blocks.push({ x: 5520, y: GROUND_Y - 140, w: 140, h: 140, type: 'castle' });
+
+            const addGoomba = (ex) => {
+                enemies.push({
+                    x: ex,
+                    y: GROUND_Y - 34,
+                    w: 34,
+                    h: 34,
+                    vx: -0.8, // 移動スピード
+                    vy: 0,    // 落下物理速度
+                    grounded: false,
+                    alive: true,
+                    squished: false,
+                    type: 'goomba'
+                });
+            };
+
+            addGoomba(650);
+            addGoomba(1250);
+            addGoomba(1450);
+            addGoomba(2400);
+            addGoomba(3000);
+            addGoomba(4000);
+            addGoomba(4700);
+        }
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Keyboard Inputs
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
+            if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+                keys.down = true;
+                if (!player.grounded && !player.isGroundPounding && gameState === 'PLAYING') {
+                    // Start Ground Pound!
+                    player.isGroundPounding = true;
+                    player.vx = 0;
+                    player.vy = -3;
+                    audio.playGroundPound();
+                }
+            }
+            if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+                if (!keys.jump && gameState === 'PLAYING') {
+                    handleJumpAction();
+                }
+                keys.jump = true;
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+            if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = false;
+            if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') keys.jump = false;
+        });
+
+        function handleJumpAction() {
+            audio.init();
+            // Normal Ground Jump
+            if (player.grounded) {
+                player.vy = -player.jumpForce * (wonderActive ? 1.15 : 1.0);
+                player.grounded = false;
+                audio.playJump();
+                createDustParticles(player.x + player.width / 2, player.y + player.height);
+            }
+            // Wall Jump Action!
+            else if (player.isWallSliding) {
+                player.vy = -player.jumpForce * 1.05;
+                player.vx = -player.wallDir * (player.maxSpeed * 1.2);
+                player.isWallSliding = false;
+                audio.playWallJump();
+                createDustParticles(player.x + (player.wallDir > 0 ? player.width : 0), player.y + player.height / 2);
+            }
+        }
+
+        const bindTouchBtn = (id, keyName) => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+
+            const press = (e) => {
+                if (e.cancelable) e.preventDefault();
+                e.stopPropagation();
+                audio.init();
+                keys[keyName] = true;
+                btn.classList.add('scale-90', 'brightness-125');
+
+                if (keyName === 'jump') handleJumpAction();
+                if (keyName === 'down' && !player.grounded && !player.isGroundPounding) {
+                    player.isGroundPounding = true;
+                    player.vx = 0;
+                    player.vy = -3;
+                    audio.playGroundPound();
+                }
+            };
+
+            const release = (e) => {
+                if (e.cancelable) e.preventDefault();
+                e.stopPropagation();
+                keys[keyName] = false;
+                btn.classList.remove('scale-90', 'brightness-125');
+            };
+
+            btn.addEventListener('pointerdown', press, { passive: false });
+            btn.addEventListener('pointerup', release, { passive: false });
+            btn.addEventListener('pointercancel', release, { passive: false });
+            btn.addEventListener('touchstart', press, { passive: false });
+            btn.addEventListener('touchend', release, { passive: false });
+            btn.addEventListener('mousedown', press);
+            btn.addEventListener('mouseup', release);
+            btn.addEventListener('mouseleave', release);
+        };
+
+        bindTouchBtn('btnLeft', 'left');
+        bindTouchBtn('btnRight', 'right');
+        bindTouchBtn('btnJump', 'jump');
+        bindTouchBtn('btnDown', 'down');
+
+        function setupDirectTapControls() {
+            const handleTouch = (e) => {
+                if (gameState !== 'PLAYING') return;
+                
+                // オンスクリーンボタン上のタップは無視する（二重反応防止）
+                if (e.target && e.target.closest && (e.target.closest('#mobileControls') || e.target.closest('header') || e.target.closest('button'))) {
+                    return;
+                }
+
+                if (e.cancelable) e.preventDefault();
+                audio.init();
+
+                const touches = e.touches || [];
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+
+                let touchLeft = false;
+                let touchRight = false;
+
+                for (let i = 0; i < touches.length; i++) {
+                    const t = touches[i];
+                    const x = t.clientX;
+                    const y = t.clientY;
+
+                    // Tap Regions
+                    if (y < h * 0.45) {
+                        if (!keys.jump) handleJumpAction();
+                    } else if (y > h * 0.8) {
+                        if (!player.grounded && !player.isGroundPounding) {
+                            player.isGroundPounding = true;
+                            player.vx = 0;
+                            player.vy = -3;
+                            audio.playGroundPound();
+                        }
+                    } else if (x < w * 0.5) {
+                        touchLeft = true;
+                    } else {
+                        touchRight = true;
+                    }
+                }
+
+                keys.left = touchLeft;
+                keys.right = touchRight;
+            };
+
+            window.addEventListener('touchstart', handleTouch, { passive: false });
+            window.addEventListener('touchmove', handleTouch, { passive: false });
+            window.addEventListener('touchend', (e) => {
+                if (e.touches.length === 0) {
+                    if (!document.querySelector('.touch-btn:active')) {
+                        keys.left = false;
+                        keys.right = false;
+                    }
+                }
+            }, { passive: false });
+        }
+
+        setupDirectTapControls();
+
+        function updatePlayer() {
+            if (gameState !== 'PLAYING') {
+                audio.setBGMMode('none');
+                return;
+            }
+
+            if (wonderActive) {
+                audio.setBGMMode('star');
+            } else if (cameraY > 300 || player.y > 800) {
+                audio.setBGMMode('underground');
+            } else {
+                audio.setBGMMode('overworld');
+            }
+
+            player.animTimer += 0.15;
+
+            // --- 土管移動（パイプアニメーション）中の処理 ---
+            if (player.isPiping) {
+                player.pipeTimer++;
+                if (player.pipeMode === 'down') {
+                    player.y += 1.5; // シュッと土管の中に沈む
+                    if (player.pipeTimer > 35) {
+                        // ワープ実行
+                        if (player.pipeTarget) {
+                            if (player.pipeTarget.isSubExit) {
+                                // 地下から地上へ復帰
+                                player.x = player.pipeTarget.exitX + 12;
+                                player.y = player.pipeTarget.exitY - player.height + 40;
+                            } else {
+                                // 地上から地下ボーナス部屋へ
+                                player.x = player.pipeTarget.x + 12;
+                                player.y = player.pipeTarget.y - player.height + 40;
+                            }
+                            player.pipeMode = 'up';
+                            player.pipeTimer = 0;
+                            audio.playPipe();
+                        }
+                    }
+                } else if (player.pipeMode === 'up') {
+                    player.y -= 1.5; // シュッと土管から出てくる
+                    if (player.pipeTimer > 35) {
+                        player.isPiping = false;
+                        player.vy = 0;
+                    }
+                }
+                return; // 土管移動中は通常の物理演算・入力処理をスキップ
+            }
+
+            // Wonder Mode Timer
+            if (wonderActive) {
+                wonderTimer--;
+                if (wonderTimer <= 0) {
+                    wonderActive = false;
+                }
+            }
+
+            // 地下部屋の出口土管に入ったかチェック
+            checkPipeEntry();
+
+            // Ground Pound Physics
+            if (player.isGroundPounding) {
+                player.vy += 1.2; // Fast downward plunge
+                player.vx = 0;
+            } else {
+                // Movement Accel
+                if (keys.left) {
+                    player.vx -= player.speed;
+                    player.facingLeft = true;
+                }
+                if (keys.right) {
+                    player.vx += player.speed;
+                    player.facingLeft = false;
+                }
+
+                player.vx *= FRICTION;
+                const maxSpd = player.maxSpeed * (wonderActive ? 1.25 : 1.0);
+                if (Math.abs(player.vx) > maxSpd) player.vx = Math.sign(player.vx) * maxSpd;
+
+                // Gravity
+                player.vy += GRAVITY;
+
+                // 地面を歩いているときの足音処理
+                if (player.grounded && Math.abs(player.vx) > 0.6) {
+                    player.stepTimer += Math.abs(player.vx);
+                    if (player.stepTimer > 18) {
+                        audio.playFootstep();
+                        player.stepTimer = 0;
+                    }
+                } else {
+                    player.stepTimer = 0;
+                }
+            }
+
+            // Move X & Check Collision
+            player.x += player.vx;
+            checkXCollisions();
+
+            // Move Y & Check Collision
+            player.y += player.vy;
+            player.grounded = false;
+            player.isWallSliding = false;
+            checkYCollisions();
+
+            // Standalone Coins Collection Check (コイン拾い処理)
+            coinsList.forEach(c => {
+                if (!c.collected) {
+                    const dx = (player.x + player.width / 2) - c.x;
+                    const dy = (player.y + player.height / 2) - c.y;
+                    if (Math.hypot(dx, dy) < 32) {
+                        c.collected = true;
+                        coins++;
+                        score += 200;
+                        audio.playCoin();
+                        createCoinSparkle(c.x, c.y);
+                        updateHUD();
+                    }
+                }
+            });
+
+            // Check Wall Slide Condition
+            if (!player.grounded && player.vy > 0) {
+                checkWallSlide();
+            }
+
+            // Pit Fall Check (穴・崖への落下判定)
+            if ((player.y > canvas.height + 250 || player.y > 1500) && !player.isDying) {
+                takeDamage(true);
+            }
+
+            if (player.invulnerableTimer > 0) {
+                player.invulnerableTimer--;
+            }
+
+            // Goal Flag Check
+            if (flagPole && player.x + player.width >= flagPole.x && player.x <= flagPole.x + flagPole.w) {
+                triggerVictory();
+            }
+        }
+
+        function checkXCollisions() {
+            blocks.forEach(b => {
+                if (player.x < b.x + b.w && player.x + player.width > b.x &&
+                    player.y < b.y + b.h && player.y + player.height > b.y) {
+
+                    if (player.vx > 0) player.x = b.x - player.width;
+                    if (player.vx < 0) player.x = b.x + b.w;
+                    player.vx = 0;
+                }
+            });
+        }
+
+        function checkYCollisions() {
+            blocks.forEach(b => {
+                if (player.x < b.x + b.w && player.x + player.width > b.x &&
+                    player.y < b.y + b.h && player.y + player.height > b.y) {
+
+                    // Landing on top
+                    if (player.vy > 0 && player.y + player.height - player.vy <= b.y + 16) {
+                        player.y = b.y - player.height;
+                        player.vy = 0;
+                        player.grounded = true;
+
+                        // 土管に乗っている時に「下キー」を押したら土管に入る！
+                        if (b.type === 'pipe' && b.canEnter && keys.down && !player.isPiping) {
+                            startPipeWarp(b);
+                        }
+
+                        // Ground Pound Impact!
+                        if (player.isGroundPounding) {
+                            player.isGroundPounding = false;
+                            createPoundShockwave(player.x + player.width / 2, player.y + player.height);
+                            audio.playBump();
+                        }
+                    }
+                    // Head Bump from below
+                    else if (player.vy < 0) {
+                        player.y = b.y + b.h;
+                        player.vy = 0;
+                        hitBlock(b);
+                    }
+                }
+            });
+        }
+
+        function checkPipeEntry() {
+            if (keys.down && player.grounded && !player.isPiping) {
+                blocks.forEach(b => {
+                    if (b.type === 'pipe' && b.canEnter) {
+                        // プレイヤーが土管の口の上に載っているか
+                        if (Math.abs((player.x + player.width / 2) - (b.x + b.w / 2)) < 24 &&
+                            Math.abs((player.y + player.height) - b.y) < 6) {
+                            startPipeWarp(b);
+                        }
+                    }
+                });
+            }
+        }
+
+        function startPipeWarp(pipeBlock) {
+            player.isPiping = true;
+            player.pipeMode = 'down';
+            player.pipeTimer = 0;
+            player.pipeTarget = pipeBlock.targetPipe;
+            player.vx = 0;
+            player.vy = 0;
+            audio.playPipe();
+        }
+
+        function checkWallSlide() {
+            blocks.forEach(b => {
+                // Touches side wall
+                if (player.y + player.height > b.y + 10 && player.y < b.y + b.h - 10) {
+                    // Touch right side wall
+                    if (Math.abs((player.x + player.width) - b.x) < 4 && keys.right) {
+                        player.isWallSliding = true;
+                        player.wallDir = 1;
+                        player.vy = Math.min(player.vy, 2.5); // Slow slide
+                    }
+                    // Touch left side wall
+                    else if (Math.abs(player.x - (b.x + b.w)) < 4 && keys.left) {
+                        player.isWallSliding = true;
+                        player.wallDir = -1;
+                        player.vy = Math.min(player.vy, 2.5);
+                    }
+                }
+            });
+        }
+
+        function hitBlock(b) {
+            if (b.type === 'question' && !b.hit) {
+                b.hit = true;
+                audio.playBump();
+
+                if (b.item === 'coin') {
+                    coins++;
+                    score += 200;
+                    audio.playCoin();
+                    createCoinSparkle(b.x + 18, b.y - 10);
+                } else if (b.item === 'wonder') {
+                    // Activate Wonder Mode!
+                    wonderActive = true;
+                    wonderTimer = 450; // ~7.5s wonder duration
+                    score += 1000;
+                    audio.playWonderEffect();
+                    createWonderParticles(b.x + 18, b.y);
+                }
+                updateHUD();
+            } else if (b.type === 'brick') {
+                audio.playBump();
+                blocks = blocks.filter(item => item !== b);
+                score += 100;
+                createBrickDebris(b.x + 18, b.y + 18);
+            }
+        }
+
+        function updateEnemies() {
+            enemies.forEach(e => {
+                if (!e.alive) return;
+
+                if (e.squished) {
+                    e.squishTimer = (e.squishTimer || 0) + 1;
+                    if (e.squishTimer > 25) e.alive = false;
+                    return;
+                }
+
+                // 敵の重力・物理計算（足場がないと崖から落下する）
+                e.vy = (e.vy || 0) + GRAVITY;
+                e.x += e.vx;
+
+                // X軸のブロック壁衝突チェック
+                blocks.forEach(b => {
+                    if (e.x < b.x + b.w && e.x + e.w > b.x && e.y < b.y + b.h && e.y + e.h > b.y) {
+                        e.vx *= -1;
+                        if (e.vx > 0) e.x = b.x + b.w;
+                        else e.x = b.x - e.w;
+                    }
+                });
+
+                // Y軸の着地判定
+                e.y += e.vy;
+                e.grounded = false;
+
+                blocks.forEach(b => {
+                    if (e.x < b.x + b.w && e.x + e.w > b.x && e.y < b.y + b.h && e.y + e.h > b.y) {
+                        if (e.vy > 0 && e.y + e.h - e.vy <= b.y + 16) {
+                            e.y = b.y - e.h;
+                            e.vy = 0;
+                            e.grounded = true;
+                        }
+                    }
+                });
+
+                // 穴に落ちた敵の消滅処理
+                if (e.y > canvas.height + 300) {
+                    e.alive = false;
+                }
+
+                // Collision with Player
+                if (player.x < e.x + e.w && player.x + player.width > e.x &&
+                    player.y < e.y + e.h && player.y + player.height > e.y) {
+
+                    // Jump or Ground Pound or Wonder Invincible Kill
+                    if (wonderActive || player.isGroundPounding || (player.vy > 0 && player.y + player.height - player.vy <= e.y + 14)) {
+                        e.squished = true;
+                        if (!player.isGroundPounding) player.vy = -9.0;
+                        score += 300;
+                        audio.playEnemyDefeat();
+                        updateHUD();
+                    } else {
+                        takeDamage(false);
+                    }
+                }
+            });
+        }
+
+        function takeDamage(instantKill = false) {
+            if ((player.invulnerableTimer > 0 || wonderActive) && !instantKill && !player.isDying) return;
+
+            player.isDying = true;
+            player.vx = 0;
+            player.vy = 0;
+            lives--;
+            updateHUD();
+
+            // 穴落ち・ミス時に専用BGMを鳴らす
+            audio.playMiss();
+
+            if (lives <= 0) {
+                gameState = 'GAMEOVER';
+                setTimeout(() => {
+                    showStatusOverlay('GAME OVER', '残機がなくなりました！', false);
+                    player.isDying = false;
+                }, 1400);
+            } else {
+                // ミスBGMが流れた後に画面内の安全な位置へ生き返る（リスポーン）
+                setTimeout(() => {
+                    if (gameState === 'PLAYING') {
+                        respawnPlayer();
+                    }
+                }, 1400);
+            }
+        }
+
+        function respawnPlayer() {
+            // 現在のカメラ位置に合わせて画面上部の安全な位置に生き返る
+            player.x = Math.max(100, cameraX + 120);
+            player.y = cameraY > 300 ? 950 : 150; // 地下か地上かに応じた空中スポーン
+            player.vx = 0;
+            player.vy = 0;
+            player.isGroundPounding = false;
+            player.invulnerableTimer = 120; // 復帰後の無敵時間（点滅）
+            player.isDying = false;
+        }
+
+        function triggerVictory() {
+            gameState = 'CLEAR';
+            audio.setBGMMode('none');
+            audio.playClear();
+            score += 5000;
+            updateHUD();
+            showStatusOverlay('STAGE CLEAR!', '見事にワンダー世界を攻略しました！', true);
+        }
+
+        function createDustParticles(x, y) {
+            for (let i = 0; i < 6; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: (Math.random() - 0.5) * 2 - 1,
+                    size: Math.random() * 4 + 2,
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    life: 0.5
+                });
+            }
+        }
+
+        function createPoundShockwave(x, y) {
+            for (let i = 0; i < 12; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.8) * 4,
+                    size: Math.random() * 8 + 4,
+                    color: '#fbbf24',
+                    life: 0.8
+                });
+            }
+        }
+
+        function createCoinSparkle(x, y) {
+            for (let i = 0; i < 8; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 5,
+                    vy: (Math.random() - 0.8) * 6,
+                    size: Math.random() * 5 + 3,
+                    color: '#fef08a',
+                    life: 0.7
+                });
+            }
+        }
+
+        function createWonderParticles(x, y) {
+            const colors = ['#f43f5e', '#3b82f6', '#10b981', '#eab308', '#ec4899'];
+            for (let i = 0; i < 20; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.8) * 8,
+                    size: Math.random() * 7 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    life: 1.0
+                });
+            }
+        }
+
+        function createBrickDebris(x, y) {
+            for (let i = 0; i < 6; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 7,
+                    vy: (Math.random() - 0.8) * 8,
+                    size: Math.random() * 8 + 4,
+                    color: '#b45309',
+                    life: 0.8
+                });
+            }
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (gameState === 'PLAYING') {
+                cameraX += (player.x - canvas.width / 3.2 - cameraX) * 0.08; // Smooth horizontal camera lag
+                
+                // 地下（player.y > 800）と地上のスムーズな上下カメラ切り替え
+                const targetCameraY = (player.y > 800) ? (1200 - canvas.height + 120) : 0;
+                cameraY += (targetCameraY - cameraY) * 0.08;
+            }
+
+            ctx.save();
+            ctx.translate(-cameraX, -cameraY);
+
+            // 1. Sky & Background (地上は爽やかな青空 / 地下は神秘的なダンジョン)
+            const isSubWorld = cameraY > 300;
+            if (isSubWorld) {
+                // 地下ダンジョンのダーク背景
+                const subGrad = ctx.createLinearGradient(cameraX, cameraY, cameraX, cameraY + canvas.height);
+                subGrad.addColorStop(0, '#020617');
+                subGrad.addColorStop(0.6, '#0f172a');
+                subGrad.addColorStop(1, '#1e1b4b');
+                ctx.fillStyle = subGrad;
+                ctx.fillRect(cameraX, cameraY, canvas.width, canvas.height);
+            } else if (wonderActive) {
+                const hue = (Date.now() / 15) % 360;
+                const grad = ctx.createLinearGradient(cameraX, cameraY, cameraX, cameraY + canvas.height);
+                grad.addColorStop(0, `hsl(${hue}, 90%, 25%)`);
+                grad.addColorStop(0.5, `hsl(${(hue + 40) % 360}, 85%, 20%)`);
+                grad.addColorStop(1, '#0f172a');
+                ctx.fillStyle = grad;
+                ctx.fillRect(cameraX, cameraY, canvas.width, canvas.height);
+            } else {
+                const grad = ctx.createLinearGradient(cameraX, cameraY, cameraX, cameraY + canvas.height);
+                grad.addColorStop(0, '#38bdf8');
+                grad.addColorStop(0.4, '#7dd3fc');
+                grad.addColorStop(0.85, '#bae6fd');
+                grad.addColorStop(1, '#e0f2fe');
+                ctx.fillStyle = grad;
+                ctx.fillRect(cameraX, cameraY, canvas.width, canvas.height);
+
+                // Bright Sun & Warm Glow (地上のみ)
+                ctx.save();
+                const sunGlow = ctx.createRadialGradient(cameraX + canvas.width * 0.8, 80, 10, cameraX + canvas.width * 0.8, 80, 220);
+                sunGlow.addColorStop(0, 'rgba(255, 253, 230, 0.95)');
+                sunGlow.addColorStop(0.4, 'rgba(253, 224, 71, 0.4)');
+                sunGlow.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                ctx.fillStyle = sunGlow;
+                ctx.fillRect(cameraX, cameraY, canvas.width, canvas.height);
+                ctx.restore();
+            }
+
+            // Ambient Air Dust / Sparks Particles
+            ambientDust.forEach(p => {
+                p.x += p.speedX;
+                p.y += p.speedY;
+                if (p.x < cameraX - 100) p.x = cameraX + canvas.width + 100;
+                if (p.x > cameraX + canvas.width + 100) p.x = cameraX - 100;
+                ctx.fillStyle = wonderActive ? `rgba(255, 255, 255, ${p.alpha})` : `rgba(226, 232, 240, ${p.alpha * 0.5})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 2. Realistic Render Blocks (Rock Texture, Metal Speculars)
+            blocks.forEach(b => {
+                if (b.x + b.w < cameraX - 50 || b.x > cameraX + canvas.width + 50 ||
+                    b.y + b.h < cameraY - 50 || b.y > cameraY + canvas.height + 50) return;
+
+                if (b.type === 'ground' || b.type === 'stair') {
+                    // Rock Body Gradient with Depth
+                    const gGrad = ctx.createLinearGradient(b.x, b.y, b.x, b.y + b.h);
+                    if (b.y > 800) {
+                        // 地下の青紫色の岩ブロック
+                        gGrad.addColorStop(0, '#1e1b4b');
+                        gGrad.addColorStop(0.5, '#0f172a');
+                        gGrad.addColorStop(1, '#020617');
+                    } else {
+                        gGrad.addColorStop(0, '#334155');
+                        gGrad.addColorStop(0.2, '#1e293b');
+                        gGrad.addColorStop(1, '#0f172a');
+                    }
+                    ctx.fillStyle = gGrad;
+                    ctx.fillRect(b.x, b.y, b.w, b.h);
+
+                    // Realistic Moss / Grass Layer
+                    ctx.fillStyle = b.y > 800 ? '#6366f1' : '#15803d';
+                    ctx.beginPath();
+                    ctx.roundRect(b.x, b.y, b.w, 8, [4, 4, 0, 0]);
+                    ctx.fill();
+
+                    // Rim Highlights
+                    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                    ctx.strokeRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2);
+
+                } else if (b.type === 'question') {
+                    // Metallic Glowing Box
+                    const qGrad = ctx.createLinearGradient(b.x, b.y, b.x + b.w, b.y + b.h);
+                    if (b.hit) {
+                        qGrad.addColorStop(0, '#475569');
+                        qGrad.addColorStop(1, '#1e293b');
+                    } else if (b.item === 'wonder') {
+                        qGrad.addColorStop(0, '#f43f5e');
+                        qGrad.addColorStop(0.5, '#ec4899');
+                        qGrad.addColorStop(1, '#8b5cf6');
+                    } else {
+                        qGrad.addColorStop(0, '#fbbf24');
+                        qGrad.addColorStop(1, '#d97706');
+                    }
+                    ctx.fillStyle = qGrad;
+                    ctx.fillRect(b.x, b.y, b.w, b.h);
+
+                    // Metallic Border & Bevel
+                    ctx.strokeStyle = b.hit ? '#334155' : '#fef08a';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4);
+
+                    if (!b.hit) {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.shadowColor = '#fbbf24';
+                        ctx.shadowBlur = 10;
+                        ctx.font = 'bold 20px Fredoka, sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(b.item === 'wonder' ? '★' : '?', b.x + 18, b.y + 26);
+                        ctx.shadowBlur = 0;
+                    }
+
+                } else if (b.type === 'brick') {
+                    // Photorealistic Brick
+                    const brGrad = ctx.createLinearGradient(b.x, b.y, b.x + b.w, b.y + b.h);
+                    brGrad.addColorStop(0, '#9a3412');
+                    brGrad.addColorStop(1, '#431407');
+                    ctx.fillStyle = brGrad;
+                    ctx.fillRect(b.x, b.y, b.w, b.h);
+
+                    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+                    ctx.strokeRect(b.x, b.y, b.w, b.h);
+                    ctx.beginPath();
+                    ctx.moveTo(b.x, b.y + 18); ctx.lineTo(b.x + b.w, b.y + 18);
+                    ctx.stroke();
+
+                } else if (b.type === 'pipe') {
+                    // Realistic Metallic Pipe Shading
+                    const pGrad = ctx.createLinearGradient(b.x, b.y, b.x + b.w, b.y);
+                    pGrad.addColorStop(0, '#14532d');
+                    pGrad.addColorStop(0.3, '#22c55e');
+                    pGrad.addColorStop(0.6, '#4ade80');
+                    pGrad.addColorStop(0.8, '#16a34a');
+                    pGrad.addColorStop(1, '#052e16');
+
+                    ctx.fillStyle = pGrad;
+                    ctx.fillRect(b.x, b.y, b.w, b.h);
+
+                    // Metallic Rim Top
+                    ctx.fillRect(b.x - 4, b.y, b.w + 8, 20);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                    ctx.strokeRect(b.x - 4, b.y, b.w + 8, 20);
+                }
+            });
+
+            // 3. Render Coins with Specular Reflection
+            coinsList.forEach(c => {
+                if (!c.collected) {
+                    const cGrad = ctx.createRadialGradient(c.x - 3, c.y - 3, 2, c.x, c.y, 12);
+                    cGrad.addColorStop(0, '#fef08a');
+                    cGrad.addColorStop(0.6, '#eab308');
+                    cGrad.addColorStop(1, '#854d0e');
+
+                    ctx.fillStyle = cGrad;
+                    ctx.beginPath();
+                    ctx.arc(c.x, c.y, 11, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.strokeStyle = '#fef08a';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                }
+            });
+
+            // 4. Goal Flag Pole (Metallic Polish)
+            if (flagPole) {
+                const poleGrad = ctx.createLinearGradient(flagPole.x, flagPole.y, flagPole.x + flagPole.w, flagPole.y);
+                poleGrad.addColorStop(0, '#64748b');
+                poleGrad.addColorStop(0.5, '#f8fafc');
+                poleGrad.addColorStop(1, '#334155');
+                ctx.fillStyle = poleGrad;
+                ctx.fillRect(flagPole.x, flagPole.y, flagPole.w, flagPole.h);
+
+                // Flag
+                ctx.fillStyle = '#f43f5e';
+                ctx.shadowColor = '#f43f5e';
+                ctx.shadowBlur = 12;
+                ctx.beginPath();
+                ctx.moveTo(flagPole.x + flagPole.w, flagPole.flagY);
+                ctx.lineTo(flagPole.x + flagPole.w + 48, flagPole.flagY + 22);
+                ctx.lineTo(flagPole.x + flagPole.w, flagPole.flagY + 44);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+
+            // 5. Enemies (Realistic Goomba with Shading)
+            enemies.forEach(e => {
+                if (!e.alive) return;
+                if (e.squished) {
+                    ctx.fillStyle = '#450a0a';
+                    ctx.fillRect(e.x, e.y + 24, e.w, 10);
+                } else {
+                    const gGrad = ctx.createRadialGradient(e.x + 17, e.y + 14, 4, e.x + 17, e.y + 20, 20);
+                    gGrad.addColorStop(0, '#ef4444');
+                    gGrad.addColorStop(1, '#7f1d1d');
+                    ctx.fillStyle = gGrad;
+                    ctx.beginPath();
+                    ctx.arc(e.x + 17, e.y + 17, 17, Math.PI, 0);
+                    ctx.lineTo(e.x + 34, e.y + 34);
+                    ctx.lineTo(e.x, e.y + 34);
+                    ctx.fill();
+
+                    // Glowing Red Eyes
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(e.x + 6, e.y + 10, 6, 9);
+                    ctx.fillRect(e.x + 22, e.y + 10, 6, 9);
+                    ctx.fillStyle = '#000000';
+                    ctx.fillRect(e.x + 8, e.y + 12, 3, 5);
+                    ctx.fillRect(e.x + 24, e.y + 12, 3, 5);
+                }
+            });
+
+            // 6. Photorealistic Mario Character & Light Aura
+            if (player.invulnerableTimer % 6 < 3) {
+                ctx.save();
+                ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
+
+                // Dynamic Light Point Source attached to Player
+                const playerLight = ctx.createRadialGradient(0, 0, 10, 0, 0, 140);
+                playerLight.addColorStop(0, wonderActive ? 'rgba(244, 63, 94, 0.45)' : 'rgba(255, 255, 255, 0.3)');
+                playerLight.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.fillStyle = playerLight;
+                ctx.beginPath();
+                ctx.arc(0, 0, 140, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (player.facingLeft) ctx.scale(-1, 1);
+
+                // Overalls Shading
+                const pantGrad = ctx.createLinearGradient(-16, -6, 16, 22);
+                pantGrad.addColorStop(0, '#3b82f6');
+                pantGrad.addColorStop(1, '#1d4ed8');
+                ctx.fillStyle = pantGrad;
+                ctx.beginPath();
+                ctx.roundRect(-16, -6, 32, 28, 8);
+                ctx.fill();
+
+                // Red Shirt
+                const shirtGrad = ctx.createLinearGradient(-14, -18, 14, -4);
+                shirtGrad.addColorStop(0, '#f87171');
+                shirtGrad.addColorStop(1, '#dc2626');
+                ctx.fillStyle = shirtGrad;
+                ctx.fillRect(-14, -18, 28, 14);
+
+                // Face & Features
+                ctx.fillStyle = '#fbcfe8';
+                ctx.beginPath();
+                ctx.arc(0, -22, 14, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Cap
+                ctx.fillStyle = '#dc2626';
+                ctx.beginPath();
+                ctx.ellipse(0, -28, 16, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            // 6.5 Pipe Top Overlays (土管に入る時にプレイヤーの手前に土管の口を描画して自然に見せる)
+            blocks.forEach(b => {
+                if (b.type === 'pipe') {
+                    const pGrad = ctx.createLinearGradient(b.x, b.y, b.x + b.w, b.y);
+                    pGrad.addColorStop(0, '#14532d');
+                    pGrad.addColorStop(0.3, '#22c55e');
+                    pGrad.addColorStop(0.6, '#4ade80');
+                    pGrad.addColorStop(0.8, '#16a34a');
+                    pGrad.addColorStop(1, '#052e16');
+                    ctx.fillStyle = pGrad;
+                    ctx.fillRect(b.x - 4, b.y, b.w + 8, 20);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                    ctx.strokeRect(b.x - 4, b.y, b.w + 8, 20);
+                }
+            });
+
+            // 7. Dynamic Particles (Explosions, Smoke, Sparks)
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const pt = particles[i];
+                pt.x += pt.vx;
+                pt.y += pt.vy;
+                pt.life -= 0.02;
+
+                ctx.save();
+                ctx.fillStyle = pt.color;
+                ctx.globalAlpha = Math.max(0, pt.life);
+                ctx.shadowColor = pt.color;
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                if (pt.life <= 0) particles.splice(i, 1);
+            }
+
+            ctx.restore();
+        }
+        function gameLoop() {
+            updatePlayer();
+            updateEnemies();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateHUD() {
+            document.getElementById('hudCoins').textContent = `x${String(coins).padStart(2, '0')}`;
+            document.getElementById('hudLives').textContent = `x${lives}`;
+            document.getElementById('hudScore').textContent = String(score).padStart(6, '0');
+        }
+
+        function showStatusOverlay(title, subtitle, isClear) {
+            document.getElementById('statusTitle').textContent = title;
+            document.getElementById('statusTitle').className = `pop-font text-2xl sm:text-3xl mb-2 font-black ${isClear ? 'text-emerald-400' : 'text-red-400'}`;
+            document.getElementById('statusSubtitle').textContent = subtitle;
+            document.getElementById('finalScore').textContent = String(score).padStart(6, '0');
+            document.getElementById('finalCoins').textContent = coins;
+            document.getElementById('statusOverlay').classList.remove('hidden');
+        }
+
+        function startNewGame() {
+            audio.init();
+            score = 0;
+            coins = 0;
+            lives = 5; // 残機5でスタート
+            cameraX = 0;
+            cameraY = 0;
+            wonderActive = false;
+
+            player.x = 100;
+            player.y = 200;
+            player.vx = 0;
+            player.vy = 0;
+            player.isGroundPounding = false;
+
+            buildLevel();
+            updateHUD();
+
+            gameState = 'PLAYING';
+            document.getElementById('startOverlay').classList.add('hidden');
+            document.getElementById('statusOverlay').classList.add('hidden');
+        }
+
+        // Attach Clicks
+        const attachClick = (id, fn) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const handler = (e) => {
+                if (e.cancelable) e.preventDefault();
+                audio.init();
+                fn();
+            };
+            el.addEventListener('pointerdown', handler);
+            el.addEventListener('click', handler);
+        };
+
+        attachClick('btnStartGame', startNewGame);
+        attachClick('btnRestart', startNewGame);
+
+        document.getElementById('btnSoundToggle').addEventListener('click', () => {
+            audio.init();
+            audio.enabled = !audio.enabled;
+            const icon = document.getElementById('btnSoundToggle').querySelector('i');
+            icon.className = audio.enabled ? 'fa-solid fa-volume-high text-base' : 'fa-solid fa-volume-xmark text-base text-rose-500';
+            if (audio.enabled) {
+                audio.playCoin();
+            }
+        });
+
+        // 画面上の任意の操作でブラウザの音制限をアンロック
+        const unlockAudio = () => {
+            audio.init();
+            if (audio.ctx && audio.ctx.state === 'running') {
+                window.removeEventListener('pointerdown', unlockAudio);
+                window.removeEventListener('keydown', unlockAudio);
+                window.removeEventListener('touchstart', unlockAudio);
+            }
+        };
+        window.addEventListener('pointerdown', unlockAudio);
+        window.addEventListener('keydown', unlockAudio);
+        window.addEventListener('touchstart', unlockAudio);
+
+        // Initialize Loop
+        buildLevel();
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
